@@ -1,6 +1,6 @@
 % Replace the following font with a symbol font
 % on your system that has Mahjong tiles (U+1F000---U+1F02B)
-\font\tensym="Noto Sans Symbols2" scaled\magstep1
+\font\tensym="Noto Sans Symbols2" scaled\magstep4
 
 \catcode`@=11
 \newfam\symfam
@@ -11,18 +11,36 @@
 \loop \Umathcode\count@=\z@\symfam\count@
 \ifnum\count@<"1F02B \advance\count@\@ne \repeat
 
+\directlua{
+function mj_filter(head, groupcode)
+ local ID_GLYPH = node.id 'glyph'
+ for t in node.traverse(head) do
+  if t.id == ID_GLYPH and 0x1F000 <= t.char and t.char <= 0x1F02B then
+   t.yoffset = -65536 * 3 % shift down 3pt
+  end
+ end
+ return head
+end
+luatexbase.add_to_callback('pre_linebreak_filter', mj_filter, 'mj_filter')
+luatexbase.add_to_callback('hpack_filter', mj_filter, 'mj_filter')
+}
+
 \def\xform#1\box#2{{\pdfextension literal{q #1 cm}%
  \wd#2\z@\box#2\pdfextension literal{Q}}}
 
-\def\rotl#1{{\setbox\z@\hbox{#1}\dimen@=\dp\z@ \dimen@ii=\wd\z@
+\def\rotl#1{{\setbox\z@\hbox{\kern-4\p@#1}
+ \dimen@=\dimexpr\dp\z@+3\p@\relax \dimen@ii=\wd\z@
  \vrule height\z@ depth\z@ width\ht\z@
- \xform{0 1 -1 0 0 -0.6}\box\z@
+ \xform{0 1 -1 0 0 0}\box\z@
  \vrule height\dimen@ii width\z@
  \vrule height\z@ depth\z@ width\dimen@}}
 
 \zhsetkind3{★▲}
 
-\def\yaku#1#2 {\par\leftline{\bf#2\if#1*★\else\if#1^▲\fi\fi}\nobreak}
+\outer\def\subsection#1\par{%
+ \vskip\z@ plus.1\vsize\penalty-250\vskip\z@ plus-.1\vsize
+ \bigskip\vskip\parskip\leftline{\bf#1}\nobreak\smallskip}
+\def\yaku#1#2 {\smallbreak\leftline{\bf#2\if#1*★\else\if#1^▲\fi\fi}\nobreak}
 
 \def\points#1#2#3#4{\vbox{\kern\p@
  \ialign{\hfil$\mathstrut##$\hfil\cr
